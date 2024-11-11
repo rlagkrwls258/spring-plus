@@ -2,7 +2,7 @@ package org.example.expert.domain.todo.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.expert.client.WeatherClient;
-import org.example.expert.domain.common.dto.AuthUser;
+import org.example.expert.config.authuser.AuthUserDetails;
 import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
@@ -17,6 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -25,7 +29,8 @@ public class TodoService {
     private final TodoRepository todoRepository;
     private final WeatherClient weatherClient;
 
-    public TodoSaveResponse saveTodo(AuthUser authUser, TodoSaveRequest todoSaveRequest) {
+    @Transactional
+    public TodoSaveResponse saveTodo(AuthUserDetails authUser, TodoSaveRequest todoSaveRequest) {
         User user = User.fromAuthUser(authUser);
 
         String weather = weatherClient.getTodayWeather();
@@ -47,10 +52,16 @@ public class TodoService {
         );
     }
 
-    public Page<TodoResponse> getTodos(int page, int size) {
+    public Page<TodoResponse> getTodos(int page, int size, String weather, String startDate, String endDate) {
         Pageable pageable = PageRequest.of(page - 1, size);
 
-        Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(pageable);
+//        Page<Todo> todos = todoRepository.findAllByOrderByModifiedAtDesc(pageable);
+
+        //String타입의 날짜 형식을 LocalDateTime으로 변환
+        LocalDateTime startDateTime = (startDate != null) ? LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE).atStartOfDay() : null;
+        LocalDateTime endDateTime = (endDate != null) ? LocalDate.parse(endDate, DateTimeFormatter.ISO_DATE).atTime(23, 59, 59) : null;
+
+        Page<Todo> todos = todoRepository.findByWeatherAndModifedAt(weather, startDateTime, endDateTime, pageable);
 
         return todos.map(todo -> new TodoResponse(
                 todo.getId(),
