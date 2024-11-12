@@ -7,6 +7,7 @@ import org.example.expert.domain.common.exception.InvalidRequestException;
 import org.example.expert.domain.todo.dto.request.TodoSaveRequest;
 import org.example.expert.domain.todo.dto.response.TodoResponse;
 import org.example.expert.domain.todo.dto.response.TodoSaveResponse;
+import org.example.expert.domain.todo.dto.response.TodoSearchResponse;
 import org.example.expert.domain.todo.entity.Todo;
 import org.example.expert.domain.todo.repository.TodoRepository;
 import org.example.expert.domain.user.dto.response.UserResponse;
@@ -89,5 +90,16 @@ public class TodoService {
                 todo.getCreatedAt(),
                 todo.getModifiedAt()
         );
+    }
+
+    public Page<TodoSearchResponse> searchTodos(int page, int size, String keyword, String startDate, String endDate, String managerName) {
+
+        Pageable pageable = PageRequest.of(page - 1, size);
+
+        //String타입의 날짜 형식을 LocalDateTime으로 변환
+        LocalDateTime startDateTime = (startDate != null) ? LocalDate.parse(startDate, DateTimeFormatter.ISO_DATE).atStartOfDay() : null;
+        LocalDateTime endDateTime = (endDate != null) ? LocalDate.parse(endDate, DateTimeFormatter.ISO_DATE).atTime(23, 59, 59) : null;
+
+        return todoRepository.search(keyword, startDateTime, endDateTime, managerName, pageable);
     }
 }
